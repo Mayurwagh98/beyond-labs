@@ -4,6 +4,27 @@ This repo contains:
 - **Backend**: Express + Mongoose API (`/backend`)
 - **Frontend**: React (Vite) UI (`/frontend/vite-project`)
 
+## Frameworks used
+
+- **Frontend**: React (Vite)
+- **Backend**: Node.js + Express
+
+## Database used
+
+- **MongoDB** (via Mongoose)
+
+## Steps to run the project (quick)
+
+1. Backend:
+   - `cd backend`
+   - `npm install`
+   - create `backend/.env` with `MONGO_URI=...`
+   - `npm run start`
+2. Frontend:
+   - `cd frontend/vite-project`
+   - `npm install`
+   - `npm run dev`
+
 ## Prerequisites
 
 - **Node.js**: Vite requires **Node 20.19+** (or **22.12+**).  
@@ -78,3 +99,9 @@ Terminal 2:
 cd frontend/vite-project
 npm run dev
 ```
+
+## Assumptions
+
+- Tasks are stored in MongoDB and are shared (no user authentication / multi-user separation).
+- A task has a required `title` and a boolean `completed`.
+- In development, the frontend talks to the backend via the Vite proxy (`/api/*` → `http://localhost:3000`).
