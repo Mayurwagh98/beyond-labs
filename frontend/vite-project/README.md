@@ -1,16 +1,80 @@
-# React + Vite
+# Task Manager (React + Node + MongoDB)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This repo contains:
+- **Backend**: Express + Mongoose API (`/backend`)
+- **Frontend**: React (Vite) UI (`/frontend/vite-project`)
 
-Currently, two official plugins are available:
+## Prerequisites
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Node.js**: Vite requires **Node 20.19+** (or **22.12+**).  
+  If you see an error like “Vite requires Node.js version 20.19+”, upgrade Node.
+- **MongoDB**: A MongoDB connection string (local or Atlas).
 
-## React Compiler
+## Backend setup (API)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1. Install dependencies:
 
-## Expanding the ESLint configuration
+```bash
+cd backend
+npm install
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+2. Create `backend/.env`:
+
+```bash
+MONGO_URI=your_mongodb_connection_string
+```
+
+3. Start the server:
+
+```bash
+cd backend
+npm run start
+```
+
+- Backend runs on `http://localhost:3000`
+- Health check: `GET /health`
+
+### Backend API routes
+
+- `GET /api/tasks` (list tasks)
+- `POST /api/tasks` (create task) body: `{ "title": "..." }`
+- `PATCH /api/tasks/:id` (update task) body supports:
+  - `{ "title": "..." }`
+  - `{ "completed": true/false }`
+- `PUT /api/tasks/:id` (full update; same body as PATCH)
+- `DELETE /api/tasks/:id` (delete task)
+
+## Frontend setup (UI)
+
+1. Install dependencies:
+
+```bash
+cd frontend/vite-project
+npm install
+```
+
+2. Start the dev server:
+
+```bash
+cd frontend/vite-project
+npm run dev
+```
+
+The frontend uses a Vite proxy so API calls to `/api/*` are forwarded to `http://localhost:3000`.
+
+## Running both together (2 terminals)
+
+Terminal 1:
+
+```bash
+cd backend
+npm run start
+```
+
+Terminal 2:
+
+```bash
+cd frontend/vite-project
+npm run dev
+```
