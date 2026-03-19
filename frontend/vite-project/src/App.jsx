@@ -1,5 +1,6 @@
 import "./App.css";
 import { useEffect, useId, useMemo, useState } from "react";
+import { createTask, listTasks, updateTask } from "./api/tasks";
 
 function App() {
   const inputId = useId();
@@ -7,9 +8,15 @@ function App() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [editingTitle, setEditingTitle] = useState("");
 
   const trimmedTitle = useMemo(() => taskTitle.trim(), [taskTitle]);
   const canAddTask = trimmedTitle.length > 0;
+  const trimmedEditingTitle = useMemo(
+    () => editingTitle.trim(),
+    [editingTitle],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -18,9 +25,7 @@ function App() {
       try {
         setLoading(true);
         setError("");
-        const res = await fetch("/api/tasks");
-        if (!res.ok) throw new Error(`Failed to load tasks (${res.status})`);
-        const data = await res.json();
+        const data = await listTasks();
         if (!cancelled) setTasks(data);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : String(e));
@@ -41,16 +46,7 @@ function App() {
 
     try {
       setError("");
-      const res = await fetch("/api/tasks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: trimmedTitle }),
-      });
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || `Failed to add task (${res.status})`);
-      }
-      const created = await res.json();
+      const created = await createTask({ title: trimmedTitle });
       setTasks((prev) => [created, ...prev]);
       setTaskTitle("");
     } catch (e) {
@@ -61,16 +57,7 @@ function App() {
   async function markComplete(taskId) {
     try {
       setError("");
-      const res = await fetch(`/api/tasks/${taskId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "completed" }),
-      });
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || `Failed to update task (${res.status})`);
-      }
-      const updated = await res.json();
+      const updated = await updateTask(taskId, { completed: true });
       setTasks((prev) => prev.map((t) => (t.id === taskId ? updated : t)));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -78,9 +65,37 @@ function App() {
   }
 
   const completedCount = tasks.reduce(
-    (acc, t) => acc + (t.status === "completed" ? 1 : 0),
+    (acc, t) => acc + (t.completed ? 1 : 0),
     0,
   );
+
+  function startEditing(task) {
+    setEditingId(task.id);
+    setEditingTitle(task.title);
+  }
+
+  function cancelEditing() {
+    setEditingId(null);
+    setEditingTitle("");
+  }
+
+  async function saveEditing(task) {
+    const nextTitle = trimmedEditingTitle;
+    if (!nextTitle) return;
+    if (nextTitle === task.title) {
+      cancelEditing();
+      return;
+    }
+
+    try {
+      setError("");
+      const updated = await updateTask(task.id, { title: nextTitle });
+      setTasks((prev) => prev.map((t) => (t.id === task.id ? updated : t)));
+      cancelEditing();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }
 
   return (
     <div className="tm">
@@ -133,37 +148,80 @@ function App() {
             {tasks.map((task) => (
               <li key={task.id} className="tm__item">
                 <div className="tm__itemMain">
-                  <div
-                    className={
-                      task.status === "completed"
-                        ? "tm__itemTitle is-done"
-                        : "tm__itemTitle"
-                    }
-                  >
-                    {task.title}
-                  </div>
+                  {editingId === task.id ? (
+                    <div className="tm__editRow">
+                      <input
+                        className="tm__input tm__input--compact"
+                        type="text"
+                        value={editingTitle}
+                        onChange={(e) => setEditingTitle(e.target.value)}
+                        autoComplete="off"
+                      />
+                    </div>
+                  ) : (
+                    <div
+                      className={
+                        task.completed
+                          ? "tm__itemTitle is-done"
+                          : "tm__itemTitle"
+                      }
+                    >
+                      {task.title}
+                    </div>
+                  )}
                   <div className="tm__meta">
                     <span
                       className={
-                        task.status === "completed"
+                        task.completed
                           ? "tm__status tm__status--completed"
                           : "tm__status tm__status--pending"
                       }
                     >
-                      {task.status === "completed" ? "Completed" : "Pending"}
+                      {task.completed ? "Completed" : "Pending"}
                     </span>
                   </div>
                 </div>
 
-                {task.status === "pending" ? (
-                  <button
-                    className="tm__button tm__button--secondary"
-                    type="button"
-                    onClick={() => markComplete(task.id)}
-                  >
-                    Mark Complete
-                  </button>
-                ) : null}
+                <div className="tm__actions">
+                  {editingId === task.id ? (
+                    <>
+                      <button
+                        className="tm__button"
+                        type="button"
+                        onClick={() => saveEditing(task)}
+                        disabled={!trimmedEditingTitle}
+                      >
+                        Save
+                      </button>
+                      <button
+                        className="tm__button tm__button--secondary"
+                        type="button"
+                        onClick={cancelEditing}
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        className="tm__button tm__button--secondary"
+                        type="button"
+                        onClick={() => startEditing(task)}
+                      >
+                        Edit
+                      </button>
+                      {!task.completed ? (
+                        <button
+                          className="tm__button tm__button--secondary"
+                          type="button"
+                          onClick={() => markComplete(task.id)}
+                        >
+                          Mark Complete
+                        </button>
+                      ) : null}
+                    </>
+                  )}
+                </div>
               </li>
             ))}
           </ul>

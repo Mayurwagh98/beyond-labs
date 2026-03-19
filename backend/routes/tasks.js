@@ -8,52 +8,32 @@ function isValidObjectId(id) {
   return mongoose.Types.ObjectId.isValid(id);
 }
 
-// Create task
-router.post("/", async (req, res) => {
-  const title = typeof req.body?.title === "string" ? req.body.title.trim() : "";
-  if (!title) {
-    return res.status(400).json({ error: "Task title is required" });
-  }
-
-  const task = await Task.create({ title, status: "pending" });
-  return res.status(201).json(task);
-});
-
-// List all tasks
-router.get("/", async (_req, res) => {
-  const tasks = await Task.find().sort({ createdAt: -1 });
-  return res.json(tasks);
-});
-
-// Get a single task
-router.get("/:id", async (req, res) => {
+async function updateTaskById(req, res) {
   const { id } = req.params;
-  if (!isValidObjectId(id)) return res.status(400).json({ error: "Invalid id" });
-
-  const task = await Task.findById(id);
-  if (!task) return res.status(404).json({ error: "Task not found" });
-  return res.json(task);
-});
-
-// Update (supports mark complete)
-router.patch("/:id", async (req, res) => {
-  const { id } = req.params;
-  if (!isValidObjectId(id)) return res.status(400).json({ error: "Invalid id" });
+  if (!isValidObjectId(id))
+    return res.status(400).json({ error: "Invalid id" });
 
   const update = {};
 
   if (typeof req.body?.title === "string") {
     const title = req.body.title.trim();
-    if (!title) return res.status(400).json({ error: "Task title is required" });
+    if (!title)
+      return res.status(400).json({ error: "Task title is required" });
     update.title = title;
   }
 
+  // Preferred boolean field
+  if (typeof req.body?.completed === "boolean") {
+    update.completed = req.body.completed;
+  }
+
+  // Backward compatibility: accept status string too
   if (typeof req.body?.status === "string") {
     const status = req.body.status;
     if (!["pending", "completed"].includes(status)) {
       return res.status(400).json({ error: "Invalid status" });
     }
-    update.status = status;
+    update.completed = status === "completed";
   }
 
   if (Object.keys(update).length === 0) {
@@ -66,12 +46,46 @@ router.patch("/:id", async (req, res) => {
   });
   if (!task) return res.status(404).json({ error: "Task not found" });
   return res.json(task);
+}
+
+// Create task
+router.post("/", async (req, res) => {
+  const title =
+    typeof req.body?.title === "string" ? req.body.title.trim() : "";
+  if (!title) {
+    return res.status(400).json({ error: "Task title is required" });
+  }
+
+  const task = await Task.create({ title, completed: false });
+  return res.status(201).json(task);
 });
+
+// List all tasks
+router.get("/", async (_req, res) => {
+  const tasks = await Task.find().sort({ createdAt: -1 });
+  return res.json(tasks);
+});
+
+// Get a single task
+router.get("/:id", async (req, res) => {
+  const { id } = req.params;
+  if (!isValidObjectId(id))
+    return res.status(400).json({ error: "Invalid id" });
+
+  const task = await Task.findById(id);
+  if (!task) return res.status(404).json({ error: "Task not found" });
+  return res.json(task);
+});
+
+// Update (supports mark complete)
+router.patch("/:id", updateTaskById);
+router.put("/:id", updateTaskById);
 
 // Delete task
 router.delete("/:id", async (req, res) => {
   const { id } = req.params;
-  if (!isValidObjectId(id)) return res.status(400).json({ error: "Invalid id" });
+  if (!isValidObjectId(id))
+    return res.status(400).json({ error: "Invalid id" });
 
   const task = await Task.findByIdAndDelete(id);
   if (!task) return res.status(404).json({ error: "Task not found" });
@@ -79,4 +93,3 @@ router.delete("/:id", async (req, res) => {
 });
 
 module.exports = router;
-

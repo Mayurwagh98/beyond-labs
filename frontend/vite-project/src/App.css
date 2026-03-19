@@ -149,6 +149,20 @@
   border-radius: 12px;
 }
 
+.tm__actions {
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+}
+
+.tm__input--compact {
+  height: 38px;
+}
+
+.tm__editRow {
+  display: grid;
+}
+
 .tm__itemMain {
   display: grid;
   gap: 6px;
@@ -204,5 +218,9 @@
   .tm__item {
     grid-template-columns: 1fr;
     align-items: start;
+  }
+
+  .tm__actions {
+    justify-items: start;
   }
 }
